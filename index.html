@@ -1,0 +1,1154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>One-factor ANOVA F demo</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --panel: #ffffff;
+    --panel2: #fbfcff;
+    --ink: #1f2937;
+    --muted: #64748b;
+    --line: #d7dce8;
+    --cell: #eef3f9;
+    --blue: #2563eb;
+    --red: #ef4444;
+    --green: #168a2f;
+    --shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+    --label-w: 48px;
+    --col-w: 48px;
+    --gap: 0px;
+    --k: 3;
+  }
+
+  * { box-sizing: border-box; }
+
+  html {
+    background: #ffffff;
+    overflow: hidden;
+  }
+
+  body {
+    margin: 0;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+    color: var(--ink);
+    background: #ffffff;
+    overflow: hidden;
+  }
+
+  .wrapper {
+    max-width: 1060px;
+    margin: 0 auto;
+    padding: 12px;
+    transform: scale(0.63);
+    transform-origin: top left;
+    width: calc(100% / 0.63);
+  }
+
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 14px;
+    align-items: end;
+    padding: 14px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+    margin-bottom: 16px;
+  }
+
+  .control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 13px;
+    color: var(--muted);
+    font-weight: 650;
+  }
+
+  .control-group input {
+    font-size: 15px;
+    padding: 6px 8px;
+    width: 78px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #ffffff;
+    color: var(--ink);
+  }
+
+  .checkbox-control {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    height: 34px;
+    padding: 0 4px;
+    font-size: 13px;
+    color: var(--muted);
+    font-weight: 700;
+    user-select: none;
+  }
+
+  .checkbox-control input {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--blue);
+  }
+
+  .button-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-left: auto;
+  }
+
+  button {
+    font-size: 15px;
+    font-weight: 750;
+    letter-spacing: 0.02em;
+    padding: 8px 14px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: #ffffff;
+    color: var(--ink);
+    cursor: pointer;
+    min-width: 76px;
+  }
+
+  button:hover { background: #f8fafc; }
+
+  button.running {
+    background: #dbeafe;
+    border-color: var(--blue);
+    color: #1d4ed8;
+  }
+
+  .main {
+    display: grid;
+    grid-template-columns: minmax(300px, 0.9fr) minmax(420px, 1.1fr);
+    gap: 16px;
+    align-items: stretch;
+  }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+
+  .panel-title {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 11px 14px;
+    border-bottom: 1px solid var(--line);
+    background: var(--panel2);
+  }
+
+  .panel-title h2 {
+    margin: 0;
+    font-size: 16px;
+    letter-spacing: 0.01em;
+  }
+
+  .panel-title span {
+    color: var(--muted);
+    font-size: 13px;
+  }
+
+  .left-inner {
+    padding: 12px 14px 14px;
+    overflow-x: auto;
+  }
+
+  .anova-grid,
+  .matrix-grid,
+  .summary-gridline {
+    display: grid;
+    grid-template-columns: var(--label-w) repeat(var(--k), var(--col-w));
+    gap: 3px var(--gap);
+    justify-content: center;
+    align-items: center;
+    margin: 0 auto;
+  }
+
+  .anova-grid { margin-bottom: 12px; }
+
+  .label {
+    width: var(--label-w);
+    text-align: right;
+    padding-right: 8px;
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--muted);
+  }
+
+  .cell,
+  .pop-input {
+    background: #ffffff;
+    color: #000000;
+    font-size: 12px;
+    margin: 0;
+    font-family: inherit;
+  }
+
+  .spacer {
+    width: var(--label-w);
+    height: 26px;
+  }
+
+  .matrix-wrap {
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: #ffffff;
+    padding: 6px;
+    /* show ~6 rows before scrolling */
+    max-height: 180px;
+    overflow: auto;
+    margin-bottom: 12px;
+  }
+
+  .summary-card {
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: var(--panel2);
+    padding: 10px 8px;
+    margin-bottom: 10px;
+  }
+
+  .summary-title {
+    text-align: center;
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--muted);
+    margin: 0 0 6px;
+  }
+
+  .summary-gridline { margin-bottom: 9px; }
+  .summary-gridline:last-child { margin-bottom: 0; }
+
+  .derived-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .derived-block {
+    text-align: center;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 9px 8px;
+    background: var(--panel2);
+  }
+
+  .derived-title {
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--muted);
+    margin-bottom: 5px;
+    white-space: nowrap;
+  }
+
+  .single-cell {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    min-width: 76px;
+    height: 32px;
+    background: var(--cell);
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 17px;
+    font-weight: 750;
+    padding: 1px 9px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  }
+
+  .ratio-block { grid-column: span 2; }
+
+  .ratio-cell {
+    font-size: 22px;
+    min-width: 92px;
+    height: 38px;
+  }
+
+  .ratio-cell.accept { color: var(--blue); }
+  .ratio-cell.reject { color: var(--red); }
+
+  .note {
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.35;
+  }
+
+  .plot-panel { min-height: 620px; }
+
+  #plot {
+    width: 100%;
+    height: 480px;
+    display: block;
+  }
+
+  .plot-message {
+    padding: 10px 18px 18px;
+    font-size: 18px;
+    font-weight: 650;
+    color: #000000;
+    line-height: 1.4;
+    text-align: center;
+  }
+
+  .plot-message .p-value {
+    font-weight: 800;
+    white-space: nowrap;
+  }
+
+  @media (max-width: 600px) {
+    .main { grid-template-columns: 1fr; }
+    .button-row { margin-left: 0; }
+    #plot { height: 390px; }
+  }
+
+  /* --- Recovery overrides: force the clean rounded-grid look --- */
+  .anova-grid,
+  .matrix-grid,
+  .summary-gridline {
+    display: grid !important;
+    grid-template-columns: var(--label-w) repeat(var(--k), var(--col-w)) !important;
+    gap: 3px var(--gap) !important;
+    justify-content: center !important;
+    align-items: center !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+
+  .cell,
+  .matrix-grid .cell,
+  .summary-gridline .cell,
+  .pop-input,
+  input.pop-input {
+    width: var(--col-w) !important;
+    min-width: var(--col-w) !important;
+    max-width: var(--col-w) !important;
+    height: 26px !important;
+    min-height: 26px !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 8px !important;
+    background: var(--cell) !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7) !important;
+    text-align: center !important;
+    font-size: 13px !important;
+    line-height: 1 !important;
+    padding: 1px 4px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    color: #111827 !important;
+  }
+
+  .pop-input,
+  input.pop-input {
+    background: #ffffff !important;
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    font-family: inherit !important;
+    margin: 0 !important;
+  }
+
+  .spacer {
+    width: var(--label-w) !important;
+    min-width: var(--label-w) !important;
+    max-width: var(--label-w) !important;
+    height: 26px !important;
+  }
+</style>
+</head>
+<body>
+<div class="wrapper">
+  <div class="controls">
+    <div class="control-group">
+      <label for="kInput">levels, k</label>
+      <input id="kInput" type="number" min="2" max="8" step="1" value="2" />
+    </div>
+    <div class="control-group">
+      <label for="nInput">sample size, n</label>
+      <input id="nInput" type="number" min="2" max="30" step="1" value="10" />
+    </div>
+    <div class="control-group">
+      <label for="alphaInput">alpha</label>
+      <input id="alphaInput" type="number" min="0.001" max="0.25" step="0.001" value="0.05" />
+    </div>
+    <label class="checkbox-control">
+      <input id="noncentralToggle" type="checkbox" />
+      show noncentral F
+    </label>
+    <div class="button-row">
+      <button id="stepBtn">STEP</button>
+      <button id="goBtn">GO</button>
+      <button id="resetBtn">RESET</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="panel">
+      <div class="panel-title">
+        <h2>One simulated experiment</h2>
+        <span>balanced one-factor design</span>
+      </div>
+      <div class="left-inner">
+        <div id="paramGrid" class="anova-grid"></div>
+        <div class="matrix-wrap">
+          <div id="matrixGrid" class="matrix-grid"></div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-title">Group means</div>
+          <div id="meansGrid" class="summary-gridline"></div>
+          <div class="summary-title">Group variances</div>
+          <div id="varsGrid" class="summary-gridline"></div>
+        </div>
+        <div class="derived-grid">
+          <div class="derived-block">
+            <div class="derived-title">n × var(means)</div>
+            <span class="single-cell" id="betweenCell">—</span>
+          </div>
+          <div class="derived-block">
+            <div class="derived-title">mean(variances)</div>
+            <span class="single-cell" id="withinCell">—</span>
+          </div>
+          <div class="derived-block ratio-block">
+            <div class="derived-title">Ratio = F</div>
+            <span class="single-cell ratio-cell" id="ratioCell">—</span>
+          </div>
+        </div>
+        <div class="note">This computes F = n × variance(group means) / mean(group variances). When k = 2, this is exactly t² from the two-sample t demo using the same seed and draw order.</div>
+      </div>
+    </div>
+
+    <div class="panel plot-panel">
+      <div class="panel-title">
+        <h2>Accumulating F statistics</h2>
+        <span id="plotSubtitle">null F distribution plus simulated experiments</span>
+      </div>
+      <canvas id="plot"></canvas>
+      <div class="plot-message" id="plotMessage"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+
+  // ============================================================
+  // Easy-to-edit settings
+  // ============================================================
+  const CONFIG = {
+    seed: 1,
+
+    defaults: {
+      k: 2,
+      n: 10,
+      alpha: 0.05,
+      means: [100, 100],
+      sds: [15, 15],
+      showNoncentralF: false,
+      // Match two-sample t demo when k = 2: draw order is row-major, A1,B1,A2,B2,...
+      syncedWithTwoSampleT: true
+    },
+
+    limits: {
+      kMin: 2,
+      kMax: 8,
+      nMin: 2,
+      nMax: 30,
+      alphaMin: 0.001,
+      alphaMax: 0.25,
+      sdMin: 0.001
+    },
+
+    plot: {
+      bins: 140,
+
+      minXMax: 8,
+      maxObservedXMax: 20,
+      criticalPadding: 1.7,
+      observedPadding: 1.05,
+      pdfYScale: 1.22,
+
+      acceptColor: '#2563eb',
+      rejectColor: '#ef4444',
+      nullFillColor: 'rgba(148, 163, 184, 0.22)',
+      rejectionRegionFill: 'rgba(239, 68, 68, 0.20)',
+      curveColor: 'rgba(30, 41, 59, 0.85)',
+
+      histogramAlpha: 0.55,
+      histogramStrokeAlpha: 0.95,
+
+      currentPointRadius: 4.5,
+
+      goDelayMs: 70,
+      slowBatchSize: 4,
+      fastBatchSize: 40,
+      fastAfterReps: 200
+    }
+  };
+
+  const DEFAULT_SEED = CONFIG.seed;
+  const JAVA_MULT = 25214903917n;
+  const JAVA_ADD = 11n;
+  const JAVA_MASK = (1n << 48n) - 1n;
+  let rngSeed = 0n;
+
+  const state = {
+    k: CONFIG.defaults.k,
+    n: CONFIG.defaults.n,
+    alpha: CONFIG.defaults.alpha,
+    means: [...CONFIG.defaults.means],
+    sds: [...CONFIG.defaults.sds],
+    data: [],
+    groupMeans: [],
+    groupVars: [],
+    between: NaN,
+    within: NaN,
+    f: NaN,
+    fValues: [],
+    reps: 0,
+    rejected: 0,
+    running: false,
+    timer: null
+  };
+
+  const el = {
+    kInput: document.getElementById('kInput'),
+    nInput: document.getElementById('nInput'),
+    alphaInput: document.getElementById('alphaInput'),
+    noncentralToggle: document.getElementById('noncentralToggle'),
+    stepBtn: document.getElementById('stepBtn'),
+    goBtn: document.getElementById('goBtn'),
+    resetBtn: document.getElementById('resetBtn'),
+    paramGrid: document.getElementById('paramGrid'),
+    matrixGrid: document.getElementById('matrixGrid'),
+    meansGrid: document.getElementById('meansGrid'),
+    varsGrid: document.getElementById('varsGrid'),
+    betweenCell: document.getElementById('betweenCell'),
+    withinCell: document.getElementById('withinCell'),
+    ratioCell: document.getElementById('ratioCell'),
+    plotSubtitle: document.getElementById('plotSubtitle'),
+    plotMessage: document.getElementById('plotMessage'),
+    plot: document.getElementById('plot')
+  };
+
+  function setSeed(seed) {
+    rngSeed = (BigInt(seed) ^ 0x5DEECE66Dn) & JAVA_MASK;
+  }
+
+  function nextBits(bits) {
+    rngSeed = (rngSeed * JAVA_MULT + JAVA_ADD) & JAVA_MASK;
+    return Number(rngSeed >> BigInt(48 - bits));
+  }
+
+  function rngDouble() {
+    return (nextBits(26) * 134217728 + nextBits(27)) / 9007199254740992;
+  }
+
+  function normalRandom(meanValue = 0, sd = 1) {
+    let u = 0;
+    let v = 0;
+    while (u === 0) u = rngDouble();
+    while (v === 0) v = rngDouble();
+    const z = Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+    return meanValue + sd * z;
+  }
+
+  function clamp(x, lo, hi) {
+    return Math.max(lo, Math.min(hi, x));
+  }
+
+  function mean(values) {
+    return values.reduce((sum, x) => sum + x, 0) / values.length;
+  }
+
+  function variance(values) {
+    const m = mean(values);
+    const ss = values.reduce((sum, x) => sum + (x - m) * (x - m), 0);
+    return ss / (values.length - 1);
+  }
+
+  function logGamma(z) {
+    const p = [
+      676.5203681218851,
+      -1259.1392167224028,
+      771.32342877765313,
+      -176.61502916214059,
+      12.507343278686905,
+      -0.13857109526572012,
+      9.9843695780195716e-6,
+      1.5056327351493116e-7
+    ];
+
+    if (z < 0.5) {
+      return Math.log(Math.PI) - Math.log(Math.sin(Math.PI * z)) - logGamma(1 - z);
+    }
+
+    z -= 1;
+    let x = 0.99999999999980993;
+    for (let i = 0; i < p.length; i++) x += p[i] / (z + i + 1);
+    const t = z + p.length - 0.5;
+    return 0.5 * Math.log(2 * Math.PI) + (z + 0.5) * Math.log(t) - t + Math.log(x);
+  }
+
+  function betaContinuedFraction(a, b, x) {
+    const maxIter = 120;
+    const eps = 3e-12;
+    const fpMin = 1e-30;
+    const qab = a + b;
+    const qap = a + 1;
+    const qam = a - 1;
+    let c = 1;
+    let d = 1 - qab * x / qap;
+    if (Math.abs(d) < fpMin) d = fpMin;
+    d = 1 / d;
+    let h = d;
+
+    for (let m = 1; m <= maxIter; m++) {
+      const m2 = 2 * m;
+      let aa = m * (b - m) * x / ((qam + m2) * (a + m2));
+      d = 1 + aa * d;
+      if (Math.abs(d) < fpMin) d = fpMin;
+      c = 1 + aa / c;
+      if (Math.abs(c) < fpMin) c = fpMin;
+      d = 1 / d;
+      h *= d * c;
+
+      aa = -(a + m) * (qab + m) * x / ((a + m2) * (qap + m2));
+      d = 1 + aa * d;
+      if (Math.abs(d) < fpMin) d = fpMin;
+      c = 1 + aa / c;
+      if (Math.abs(c) < fpMin) c = fpMin;
+      d = 1 / d;
+      const del = d * c;
+      h *= del;
+      if (Math.abs(del - 1) < eps) break;
+    }
+
+    return h;
+  }
+
+  function regularizedIncompleteBeta(x, a, b) {
+    if (x <= 0) return 0;
+    if (x >= 1) return 1;
+    const bt = Math.exp(
+      logGamma(a + b) - logGamma(a) - logGamma(b) +
+      a * Math.log(x) + b * Math.log(1 - x)
+    );
+    if (x < (a + 1) / (a + b + 2)) return bt * betaContinuedFraction(a, b, x) / a;
+    return 1 - bt * betaContinuedFraction(b, a, 1 - x) / b;
+  }
+
+  function fCDF(x, d1, d2) {
+    if (x <= 0) return 0;
+    return regularizedIncompleteBeta((d1 * x) / (d1 * x + d2), d1 / 2, d2 / 2);
+  }
+
+  function fPDF(x, d1, d2) {
+    if (x <= 0) return 0;
+    const a = d1 / 2;
+    const b = d2 / 2;
+    const logB = logGamma(a) + logGamma(b) - logGamma(a + b);
+    return Math.exp(
+      a * Math.log(d1 / d2) +
+      (a - 1) * Math.log(x) -
+      (a + b) * Math.log(1 + (d1 / d2) * x) -
+      logB
+    );
+  }
+
+  function fQuantile(p, d1, d2) {
+    let lo = 0;
+    let hi = 1;
+    while (fCDF(hi, d1, d2) < p && hi < 1e6) hi *= 2;
+    for (let i = 0; i < 80; i++) {
+      const mid = (lo + hi) / 2;
+      if (fCDF(mid, d1, d2) < p) lo = mid;
+      else hi = mid;
+    }
+    return (lo + hi) / 2;
+  }
+
+  function noncentralityParameter() {
+    const muBar = mean(state.means);
+    const meanVariance = mean(state.sds.map(sd => sd * sd));
+    const ssMeans = state.means.reduce((sum, mu) => sum + (mu - muBar) * (mu - muBar), 0);
+    return state.n * ssMeans / meanVariance;
+  }
+
+  function noncentralFPDF(x, d1, d2, lambda) {
+    if (lambda <= 1e-12) return fPDF(x, d1, d2);
+    const halfLambda = lambda / 2;
+    let weight = Math.exp(-halfLambda);
+    let total = 0;
+
+    for (let r = 0; r < 300; r++) {
+      const shiftedD1 = d1 + 2 * r;
+      const scaledX = x * d1 / shiftedD1;
+      total += weight * (d1 / shiftedD1) * fPDF(scaledX, shiftedD1, d2);
+      if (r > halfLambda + 10 * Math.sqrt(halfLambda + 1) && weight < 1e-12) break;
+      weight *= halfLambda / (r + 1);
+    }
+
+    return total;
+  }
+
+  function noncentralFCDF(x, d1, d2, lambda) {
+    if (lambda <= 1e-12) return fCDF(x, d1, d2);
+    const halfLambda = lambda / 2;
+    let weight = Math.exp(-halfLambda);
+    let total = 0;
+
+    for (let r = 0; r < 300; r++) {
+      const shiftedD1 = d1 + 2 * r;
+      const scaledX = x * d1 / shiftedD1;
+      total += weight * fCDF(scaledX, shiftedD1, d2);
+      if (r > halfLambda + 10 * Math.sqrt(halfLambda + 1) && weight < 1e-12) break;
+      weight *= halfLambda / (r + 1);
+    }
+
+    return total;
+  }
+
+  function theoreticalPDF(x, d1, d2) {
+    if (!el.noncentralToggle.checked) return fPDF(x, d1, d2);
+    return noncentralFPDF(x, d1, d2, noncentralityParameter());
+  }
+
+  function pValueF(f) {
+    // Conventional p-value under the null F distribution.
+    const d1 = state.k - 1;
+    const d2 = state.k * (state.n - 1);
+    return 1 - fCDF(f, d1, d2);
+  }
+
+  function expectedRejectionRate(fcrit, d1, d2) {
+    if (!el.noncentralToggle.checked) return state.alpha;
+    return 1 - noncentralFCDF(fcrit, d1, d2, noncentralityParameter());
+  }
+
+  function readParams() {
+    state.k = clamp(parseInt(el.kInput.value || CONFIG.defaults.k, 10), CONFIG.limits.kMin, CONFIG.limits.kMax);
+    state.n = clamp(parseInt(el.nInput.value || CONFIG.defaults.n, 10), CONFIG.limits.nMin, CONFIG.limits.nMax);
+    state.alpha = clamp(parseFloat(el.alphaInput.value || CONFIG.defaults.alpha), CONFIG.limits.alphaMin, CONFIG.limits.alphaMax);
+    el.kInput.value = state.k;
+    el.nInput.value = state.n;
+    el.alphaInput.value = state.alpha;
+
+    while (state.means.length < state.k) state.means.push(CONFIG.defaults.means[state.means.length] ?? 100);
+    while (state.sds.length < state.k) state.sds.push(CONFIG.defaults.sds[state.sds.length] ?? 15);
+    state.means = state.means.slice(0, state.k);
+    state.sds = state.sds.slice(0, state.k).map(sd => Math.max(CONFIG.limits.sdMin, sd));
+    document.documentElement.style.setProperty('--k', state.k);
+  }
+
+  function criticalF() {
+    return fQuantile(1 - state.alpha, state.k - 1, state.k * (state.n - 1));
+  }
+
+  function reset() {
+    stop();
+    setSeed(DEFAULT_SEED);
+    readParams();
+    state.fValues = [];
+    state.reps = 0;
+    state.rejected = 0;
+    state.data = [];
+    state.groupMeans = Array(state.k).fill(NaN);
+    state.groupVars = Array(state.k).fill(NaN);
+    state.between = NaN;
+    state.within = NaN;
+    state.f = NaN;
+    renderAll();
+  }
+
+  function updateAlpha() {
+    state.alpha = clamp(parseFloat(el.alphaInput.value || CONFIG.defaults.alpha), CONFIG.limits.alphaMin, CONFIG.limits.alphaMax);
+    el.alphaInput.value = state.alpha;
+    state.rejected = state.fValues.filter(f => f > criticalF()).length;
+    renderAll();
+  }
+
+  function runOneExperiment(renderNow = true) {
+    readParams();
+    const data = [];
+    for (let i = 0; i < state.n; i++) {
+      const row = [];
+      for (let j = 0; j < state.k; j++) row.push(normalRandom(state.means[j], state.sds[j]));
+      data.push(row);
+    }
+
+    const columns = [];
+    for (let j = 0; j < state.k; j++) columns.push(data.map(row => row[j]));
+
+    state.data = data;
+    state.groupMeans = columns.map(mean);
+    state.groupVars = columns.map(variance);
+    state.between = state.n * variance(state.groupMeans);
+    state.within = mean(state.groupVars);
+    state.f = state.between / state.within;
+    state.fValues.push(state.f);
+    state.reps += 1;
+    if (state.f > criticalF()) state.rejected += 1;
+    if (renderNow) renderAll();
+  }
+
+  function makeCell(value) {
+    const shown = Number.isFinite(value) ? Math.round(value) : '';
+    return `<div class="cell">${shown}</div>`;
+  }
+
+  function renderLeftPanel() {
+    document.documentElement.style.setProperty('--k', state.k);
+
+    let paramHTML = '<div class="label">mean</div>';
+    for (let j = 0; j < state.k; j++) {
+      paramHTML += `<input class="pop-input mean-input" data-index="${j}" type="number" step="1" value="${state.means[j]}">`;
+    }
+    paramHTML += '<div class="label">SD</div>';
+    for (let j = 0; j < state.k; j++) {
+      paramHTML += `<input class="pop-input sd-input" data-index="${j}" type="number" min="${CONFIG.limits.sdMin}" step="1" value="${state.sds[j]}">`;
+    }
+    el.paramGrid.innerHTML = paramHTML;
+
+    el.paramGrid.querySelectorAll('.mean-input').forEach(input => {
+      input.addEventListener('change', event => {
+        state.means[+event.target.dataset.index] = parseFloat(event.target.value || 0);
+        reset();
+      });
+    });
+    el.paramGrid.querySelectorAll('.sd-input').forEach(input => {
+      input.addEventListener('change', event => {
+        state.sds[+event.target.dataset.index] = Math.max(CONFIG.limits.sdMin, parseFloat(event.target.value || 1));
+        reset();
+      });
+    });
+
+    let matrixHTML = '';
+    for (let i = 0; i < state.n; i++) {
+      matrixHTML += '<div class="spacer"></div>';
+      for (let j = 0; j < state.k; j++) matrixHTML += makeCell(state.data[i]?.[j]);
+    }
+    el.matrixGrid.innerHTML = matrixHTML;
+
+    let meansHTML = '<div class="spacer"></div>';
+    for (let j = 0; j < state.k; j++) meansHTML += makeCell(state.groupMeans[j]);
+    el.meansGrid.innerHTML = meansHTML;
+
+    let varsHTML = '<div class="spacer"></div>';
+    for (let j = 0; j < state.k; j++) varsHTML += makeCell(state.groupVars[j]);
+    el.varsGrid.innerHTML = varsHTML;
+
+    el.betweenCell.textContent = Number.isFinite(state.between) ? state.between.toFixed(0) : '—';
+    el.withinCell.textContent = Number.isFinite(state.within) ? state.within.toFixed(0) : '—';
+    el.ratioCell.textContent = Number.isFinite(state.f) ? state.f.toFixed(2) : '—';
+    el.ratioCell.classList.remove('accept', 'reject');
+    if (Number.isFinite(state.f)) el.ratioCell.classList.add(state.f > criticalF() ? 'reject' : 'accept');
+  }
+
+  function hexToRgba(hex, alpha = 1) {
+    const clean = hex.replace('#', '');
+    const r = parseInt(clean.slice(0, 2), 16);
+    const g = parseInt(clean.slice(2, 4), 16);
+    const b = parseInt(clean.slice(4, 6), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
+
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+  }
+
+  function renderPlot() {
+    const canvas = el.plot;
+    const rect = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.round(rect.width * dpr);
+    canvas.height = Math.round(rect.height * dpr);
+
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    const width = rect.width;
+    const height = rect.height;
+    ctx.clearRect(0, 0, width, height);
+
+    const margin = { left: 54, right: 24, top: 28, bottom: 70 };
+    const plotWidth = width - margin.left - margin.right;
+    const plotHeight = height - margin.top - margin.bottom;
+    const d1 = state.k - 1;
+    const d2 = state.k * (state.n - 1);
+    const fcrit = criticalF();
+    const lambda = noncentralityParameter();
+    const maxObserved = state.fValues.length ? Math.max(...state.fValues) : 0;
+    const xMax = Math.max(
+      CONFIG.plot.minXMax,
+      fcrit * CONFIG.plot.criticalPadding,
+      Math.min(CONFIG.plot.maxObservedXMax, maxObserved * CONFIG.plot.observedPadding)
+    );
+    const X = x => margin.left + (x / xMax) * plotWidth;
+
+    let pdfMax = 0;
+    for (let i = 1; i <= 900; i++) {
+      pdfMax = Math.max(pdfMax, theoreticalPDF((i / 900) * xMax, d1, d2));
+    }
+    const yMax = pdfMax * CONFIG.plot.pdfYScale;
+    const Y = y => margin.top + plotHeight - (y / yMax) * plotHeight;
+
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(margin.left, margin.top, plotWidth, plotHeight);
+
+    ctx.strokeStyle = '#eef2f7';
+    ctx.lineWidth = 1;
+    for (let g = 0; g <= 4; g++) {
+      const y = margin.top + plotHeight * g / 4;
+      ctx.beginPath();
+      ctx.moveTo(margin.left, y);
+      ctx.lineTo(margin.left + plotWidth, y);
+      ctx.stroke();
+    }
+
+    function fillDistribution(x0, x1, color) {
+      ctx.beginPath();
+      ctx.moveTo(X(x0), Y(0));
+      for (let i = 0; i <= 500; i++) {
+        const x = x0 + (x1 - x0) * i / 500;
+        ctx.lineTo(X(x), Y(theoreticalPDF(x, d1, d2)));
+      }
+      ctx.lineTo(X(x1), Y(0));
+      ctx.closePath();
+      ctx.fillStyle = color;
+      ctx.fill();
+    }
+
+    fillDistribution(0.0001, Math.min(fcrit, xMax), CONFIG.plot.nullFillColor);
+    if (fcrit < xMax) fillDistribution(fcrit, xMax, CONFIG.plot.rejectionRegionFill);
+
+    const bins = CONFIG.plot.bins;
+    const counts = Array(bins).fill(0);
+    for (const f of state.fValues) {
+      if (f >= 0 && f <= xMax) counts[Math.min(bins - 1, Math.floor((f / xMax) * bins))] += 1;
+    }
+    const binWidth = xMax / bins;
+    const densities = counts.map(count => state.fValues.length ? count / (state.fValues.length * binWidth) : 0);
+
+    if (state.fValues.length > 0) {
+      for (let i = 0; i < bins; i++) {
+        if (densities[i] <= 0) continue;
+
+        const xLeftVal = i * binWidth;
+        const xRightVal = (i + 1) * binWidth;
+        const xMid = (xLeftVal + xRightVal) / 2;
+
+        const rejectedBin = xMid > fcrit;
+        const color = rejectedBin ? CONFIG.plot.rejectColor : CONFIG.plot.acceptColor;
+
+        ctx.fillStyle = hexToRgba(color, CONFIG.plot.histogramAlpha);
+        ctx.strokeStyle = hexToRgba(color, CONFIG.plot.histogramStrokeAlpha);
+        ctx.lineWidth = 1.2;
+
+        const px = X(xLeftVal);
+        const py = Y(densities[i]);
+        const pw = Math.max(1, X(xRightVal) - X(xLeftVal));
+        const ph = Y(0) - py;
+
+        ctx.fillRect(px, py, pw, ph);
+        ctx.strokeRect(px, py, pw, ph);
+      }
+    }
+
+    ctx.strokeStyle = CONFIG.plot.curveColor;
+    ctx.lineWidth = 2;
+    ctx.setLineDash([7, 6]);
+    ctx.beginPath();
+    for (let i = 1; i <= 700; i++) {
+      const x = (i / 700) * xMax;
+      const y = theoreticalPDF(x, d1, d2);
+      if (i === 1) ctx.moveTo(X(x), Y(y));
+      else ctx.lineTo(X(x), Y(y));
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    if (fcrit < xMax) {
+      ctx.strokeStyle = 'rgba(30, 41, 59, 0.78)';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([3, 5]);
+      ctx.beginPath();
+      ctx.moveTo(X(fcrit), margin.top);
+      ctx.lineTo(X(fcrit), margin.top + plotHeight);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    if (Number.isFinite(state.f)) {
+      ctx.beginPath();
+      ctx.arc(X(Math.min(state.f, xMax)), margin.top + plotHeight, CONFIG.plot.currentPointRadius, 0, 2 * Math.PI);
+      ctx.fillStyle = state.f > fcrit ? CONFIG.plot.rejectColor : CONFIG.plot.acceptColor;
+      ctx.fill();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    ctx.strokeStyle = '#94a3b8';
+    ctx.lineWidth = 1.25;
+    ctx.beginPath();
+    ctx.moveTo(margin.left, margin.top);
+    ctx.lineTo(margin.left, margin.top + plotHeight);
+    ctx.lineTo(margin.left + plotWidth, margin.top + plotHeight);
+    ctx.stroke();
+
+    ctx.fillStyle = '#334155';
+    ctx.strokeStyle = '#94a3b8';
+    ctx.lineWidth = 1;
+    ctx.font = '10px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    const tickStep = xMax <= 8 ? 1 : xMax <= 12 ? 2 : xMax <= 25 ? 5 : 10;
+    for (let t = 0; t <= xMax + 1e-9; t += tickStep) {
+      const x = X(t);
+      ctx.beginPath();
+      ctx.moveTo(x, margin.top + plotHeight);
+      ctx.lineTo(x, margin.top + plotHeight + 6);
+      ctx.stroke();
+      ctx.fillText(Number.isInteger(t) ? String(t) : t.toFixed(1), x, margin.top + plotHeight + 10);
+    }
+
+    ctx.font = '14px Arial';
+    ctx.fillStyle = '#1f2937';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.fillText(`F(${d1}, ${d2})`, margin.left + plotWidth / 2, height - 39);
+
+    ctx.save();
+    ctx.translate(18, margin.top + plotHeight / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.font = '10px Arial';
+    ctx.fillStyle = '#64748b';
+    ctx.textAlign = 'center';
+    ctx.fillText('density', 0, 0);
+    ctx.restore();
+
+    const pReject = state.reps ? state.rejected / state.reps : 0;
+    const expectedReject = expectedRejectionRate(fcrit, d1, d2);
+
+    el.plotSubtitle.textContent = el.noncentralToggle.checked
+      ? `noncentral F approximation, λ = ${lambda.toFixed(2)}`
+      : 'null F distribution plus simulated experiments';
+
+    let lines;
+
+    if (state.reps && Number.isFinite(state.f)) {
+      const p = pValueF(state.f);
+      const pColor = state.f > fcrit ? CONFIG.plot.rejectColor : CONFIG.plot.acceptColor;
+
+      lines = [
+        `rep ${state.reps}, <span class="p-value" style="color:${pColor}">p = ${p.toFixed(4)}</span>`,
+        `Pr(F > ${fcrit.toFixed(2)}) = ${pReject.toFixed(4)}`,
+        `expected ≈ ${expectedReject.toFixed(4)}`
+      ];
+    } else {
+      lines = [
+        `F(${d1}, ${d2})`,
+        `critical F = ${fcrit.toFixed(2)}`,
+        `expected = ${expectedReject.toFixed(4)}`
+      ];
+    }
+
+    el.plotMessage.innerHTML = lines.join('<br>');
+  }
+
+  function renderAll() {
+    renderLeftPanel();
+    renderPlot();
+  }
+
+  function start() {
+    if (state.running) return;
+    state.running = true;
+    el.goBtn.textContent = 'STOP';
+    el.goBtn.classList.add('running');
+
+    const loop = () => {
+      if (!state.running) return;
+      if (state.reps < CONFIG.plot.fastAfterReps) {
+        for (let i = 0; i < CONFIG.plot.slowBatchSize; i++) runOneExperiment(true);
+      } else {
+        for (let i = 0; i < CONFIG.plot.fastBatchSize; i++) runOneExperiment(false);
+        renderAll();
+      }
+      state.timer = setTimeout(loop, CONFIG.plot.goDelayMs);
+    };
+
+    loop();
+  }
+
+  function stop() {
+    state.running = false;
+    if (state.timer) clearTimeout(state.timer);
+    state.timer = null;
+    el.goBtn.textContent = 'GO';
+    el.goBtn.classList.remove('running');
+  }
+
+  el.stepBtn.addEventListener('click', () => {
+    stop();
+    runOneExperiment();
+  });
+
+  el.goBtn.addEventListener('click', () => {
+    if (state.running) stop();
+    else start();
+  });
+
+  el.resetBtn.addEventListener('click', reset);
+  el.kInput.addEventListener('change', reset);
+  el.nInput.addEventListener('change', reset);
+  el.alphaInput.addEventListener('change', updateAlpha);
+  el.noncentralToggle.addEventListener('change', renderPlot);
+  window.addEventListener('resize', renderPlot);
+
+  el.kInput.min = CONFIG.limits.kMin;
+  el.kInput.max = CONFIG.limits.kMax;
+  el.kInput.step = 1;
+  el.kInput.value = CONFIG.defaults.k;
+
+  el.nInput.min = CONFIG.limits.nMin;
+  el.nInput.max = CONFIG.limits.nMax;
+  el.nInput.step = 1;
+  el.nInput.value = CONFIG.defaults.n;
+
+  el.alphaInput.min = CONFIG.limits.alphaMin;
+  el.alphaInput.max = CONFIG.limits.alphaMax;
+  el.alphaInput.step = 0.001;
+  el.alphaInput.value = CONFIG.defaults.alpha;
+
+  el.noncentralToggle.checked = CONFIG.defaults.showNoncentralF;
+
+  readParams();
+  reset();
+})();
+</script>
+</body>
+</html>
